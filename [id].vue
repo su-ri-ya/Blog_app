@@ -1,82 +1,44 @@
 <template>
-  <div class="container">
-    <h1>✏️ Edit Blog</h1>
+  <div class="container" v-if="blog">
+    <h1>{{ blog.title }}</h1>
+   <img :src="`${config.public.imageBase}/${blog.image}`" alt="Blog Image" />
+    <p>{{ blog.description }}</p>
+    <p><strong>Date:</strong> {{ blog.date }}</p>
+    <NuxtLink to="/" class="btn">⬅️ Back</NuxtLink>
+  </div>
 
-    <form @submit.prevent="handleSubmit">
-      <label for="title">Title:</label>
-      <input v-model="title" type="text" placeholder="Title" required />
-
-      <label for="description">Description:</label>
-      <textarea v-model="description" placeholder="Description" required></textarea>
-
-      <label for="image">Image URL:</label>
-      <input v-model="image" type="text" placeholder="Image URL" required />
-
-      <button type="submit">Update</button>
-    </form>
-
-    <NuxtLink to="/" class="btn">⬅ Back</NuxtLink>
+  <div v-else class="loading">
+    <p>Loading blog or blog not found...</p>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 
+const blog = ref(null)
 const route = useRoute()
-const router = useRouter()
 const config = useRuntimeConfig()
-
-const id = route.params.id
-const title = ref('')
-const description = ref('')
-const image = ref('')
 
 onMounted(async () => {
   try {
     const res = await fetch(`${config.public.apiBase}/blogs`)
     const data = await res.json()
 
-    const blog = Array.isArray(data)
-      ? data.find(b => b.id === parseInt(id))
+    // ✅ Safely find the blog with matching id
+    const found = Array.isArray(data)
+      ? data.find(b => b.id === parseInt(route.params.id))
       : null
 
-    if (blog) {
-      title.value = blog.title
-      description.value = blog.description
-      image.value = blog.image
+    if (found) {
+      blog.value = found
     } else {
       console.warn('Blog not found')
     }
   } catch (err) {
-    console.error('Error fetching blog:', err)
+    console.error('Error loading blog:', err)
   }
 })
-
-const handleSubmit = async () => {
-  const updatedBlog = {
-    id: parseInt(id),
-    title: title.value,
-    description: description.value,
-    image: image.value,
-    date: new Date().toISOString().slice(0, 10)
-  }
-
-  try {
-    const res = await fetch(`${config.public.apiBase}/blogs/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updatedBlog)
-    })
-
-    if (!res.ok) throw new Error('Update failed')
-
-    router.push('/')
-  } catch (err) {
-    console.error('❌ Update failed:', err)
-    alert('Something went wrong while updating the blog.')
-  }
-}
 </script>
 
 <style scoped>
@@ -84,18 +46,15 @@ const handleSubmit = async () => {
   max-width: 600px;
   margin: auto;
   padding: 20px;
-}
-input, textarea {
-  width: 100%;
-  margin-bottom: 12px;
-  padding: 10px;
-}
-button {
-  background: orange;
   color: white;
-  padding: 10px 16px;
-  border: none;
-  border-radius: 4px;
+  background-color: #121212;
+}
+img {
+  width: 100%;
+  max-height: 500px;
+  object-fit: cover;
+  margin-bottom: 10px;
+  border-radius: 6px;
 }
 .btn {
   display: inline-block;
@@ -103,5 +62,11 @@ button {
   background: #ccc;
   padding: 8px 14px;
   text-decoration: none;
+  color: black;
+}
+.loading {
+  text-align: center;
+  margin-top: 40px;
+  color: white;
 }
 </style>
